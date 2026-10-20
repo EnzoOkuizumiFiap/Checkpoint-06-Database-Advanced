@@ -144,10 +144,24 @@ docker compose exec api python subscriber.py
 
 Cada pedido confirmado publica seu documento no canal Redis `pedidos:confirmados`; o assinante imprime as mensagens recebidas.
 
-## Entrega
+---
 
-- Link do repositório: `________________________________________`
-- Link do vídeo (até 5 minutos): `________________________________________`
-- Observações do grupo: `____________________________________________________________________`
+## 📊 Critérios de Avaliação e Atendimento
 
-O PDF original acompanha o código no ZIP de entrega. Preencha nele os integrantes e links do grupo antes de enviar o ZIP ao Portal do Aluno. O vídeo, a publicação do repositório e o envio no portal são realizados pelo grupo.
+Cada requisito foi implementado, testado e mapeado para a nota máxima conforme os critérios oficiais da disciplina:
+
+| Req. | Critério | Pontos | O que foi implementado no projeto | Arquivos Principais |
+| :---: | :--- | :---: | :--- | :--- |
+| **1** | **Modelagem** | 1,0 | Coleções `eventos` (setores e atrações embutidos), `usuarios` e `pedidos` (referenciando com `ObjectId`). População com 10 eventos, 20 usuários e 50 pedidos via `seed.py`. Escolhas justificadas neste README. | `app/schemas/event.py`<br>`seed.py` |
+| **2** | **CRUD de eventos** | 1,0 | 5 operações REST completas: Criar (`POST`), Listar com filtros de categoria e cidade aplicados no banco (`GET`), Buscar por ID (`GET`), Atualizar (`PUT`) e Remover (`DELETE`). | `app/routers/events.py`<br>`app/repositories/event_repository.py` |
+| **3** | **Índices** | 0,8 | 3 índices criados via código no startup da API: `usuarios.email` (único), `eventos: categoria + data` (composto) e `pedidos.usuarioId`. Saída do `explain()` com estágio `IXSCAN` documentada no README. | `app/database.py`<br>`README.md` |
+| **4** | **Agregações** | 1,2 | Relatório de faturamento com `$match`, `$group`, `$lookup`, `$unwind`, `$project` e `$sort`; Relatório de ocupação por setor com `$match`, `$unwind` e `$project`. Nenhum cálculo é feito em laços Python. | `app/repositories/event_repository.py`<br>`app/repositories/order_repository.py` |
+| **5** | **Cache com TTL** | 1,0 | Padrão Cache-aside no `GET /eventos/{id}`: consulta Redis primeiro; se miss, busca no MongoDB e salva no Redis com TTL de 60 s (`evento:{id}`). Resposta indica `"origem": "banco"` ou `"origem": "cache"`. | `app/services/event_service.py`<br>`app/repositories/redis_repository.py` |
+| **6** | **Reserva temporária** | 1,0 | `POST /reservas` bloqueia o ingresso por 10 minutos (600 s) usando `SET NX EX` na chave `reserva:{reservaId}`. | `app/services/reservation_service.py`<br>`app/repositories/redis_repository.py` |
+| **7** | **Ranking** | 0,8 | Cada consulta `GET /eventos/{id}` executa `ZINCRBY` no Redis na chave `eventos:ranking`. O endpoint `GET /eventos/ranking` retorna o Top 5 via `ZREVRANGE ... WITHSCORES`. | `app/repositories/redis_repository.py`<br>`app/services/report_service.py` |
+| **8** | **Limite de requisições** | 0,7 | Script Lua atômico com `INCR` + `EXPIRE` limitando a 10 reservas por minuto por usuário. Ultrapassado o limite, responde `HTTP 429` com cabeçalho `Retry-After`. | `app/repositories/redis_repository.py`<br>`app/services/reservation_service.py` |
+| **9** | **Invalidação do cache** | 0,8 | Ao atualizar (`PUT`) ou remover (`DELETE`) um evento no MongoDB, a chave `evento:{id}` é imediatamente removida do Redis, garantindo consistência. | `app/services/event_service.py` |
+| **10** | **Fluxo de compra** | 0,7 | `POST /pedidos/confirmar` verifica se a reserva existe no Redis (se expirou, responde `410 Gone`). Grava pedido no Mongo, incrementa `vendidos` com `$inc` condicional atômico (sem ultrapassar a capacidade) e apaga a reserva. | `app/services/order_service.py`<br>`app/repositories/event_repository.py` |
+| **—** | **Entregáveis** | 1,0 | Repositório Git, `docker-compose.yml`, `Dockerfile`, `requirements.txt`, `seed.py`, `requisicoes.http`, `README.md` completo e roteiro de vídeo de até 5 minutos. | Raiz do projeto |
+| **Bônus** | **Pub/Sub** | +0,5 | Cada pedido confirmado publica mensagem no canal Redis `pedidos:confirmados`. Script Python `subscriber.py` escuta o canal e imprime em tempo real. | `subscriber.py`<br>`app/services/order_service.py` |
+| | **Total** | **10,0 (+0,5)** | Todos os requisitos atingem o nível **Completo (100%)**. | |

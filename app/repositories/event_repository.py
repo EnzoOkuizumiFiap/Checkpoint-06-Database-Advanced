@@ -90,7 +90,16 @@ class EventRepository:
         sector_name: str,
         quantity: int,
     ) -> bool:
-        """Incrementa vendidos atômica e condicionalmente (não ultrapassa capacidade)."""
+        """Incrementa vendidos de forma ATÔMICA e CONDICIONAL (Requisito 10).
+        
+        Como funciona e por que é seguro contra concorrência?
+        1. No MongoDB, documentos não conseguem comparar dois campos entre si em filtros normais
+           (ex: comparar 'vendidos' com 'capacidade').
+        2. Usamos o operador '$expr' (aggregation expression dentro da query de update),
+           que permite somar 'vendidos + quantidade' e testar se é menor ou igual a 'capacidade' ($lte).
+        3. Se o setor já estiver esgotado, o filtro NÃO casa com nenhum documento e 'matched_count' será 0.
+        4. O banco faz a checagem e o incremento ($inc) ao mesmo tempo, impedindo 'overbooking' (venda acima da capacidade)!
+        """
         selected_sector = {
             "$arrayElemAt": [
                 {
