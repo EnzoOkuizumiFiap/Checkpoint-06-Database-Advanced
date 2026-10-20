@@ -1,0 +1,12 @@
+.git
+.agents
+.aws
+.codex
+.venv
+venv
+__pycache__
+*.py[cod]
+*.pdf
+*.md
+*.http
+ticketflash-entrega.zip

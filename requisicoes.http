@@ -1,0 +1,164 @@
+@baseUrl = http://localhost:8000
+@eventoId = 67f000000000000000000001
+@usuarioId = 67f100000000000000000001
+@usuarioLimiteId = 67f100000000000000000002
+@reservaId = COLE_AQUI_O_reservaId_DA_RESPOSTA
+@reservaExpiradaId = COLE_AQUI_O_ID_DE_UMA_RESERVA_EXPIRADA
+
+### Status da API
+GET {{baseUrl}}/health
+
+### CRUD: criar um evento
+POST {{baseUrl}}/eventos
+Content-Type: application/json
+
+{
+  "nome": "Evento de demonstração",
+  "categoria": "Música",
+  "data": "2027-12-10T20:00:00Z",
+  "local": { "cidade": "São Paulo", "endereço": "Rua de Demonstração, 50" },
+  "atrações": ["Artista de Demonstração"],
+  "setores": [
+    { "nome": "Pista", "preço": 100.0, "capacidade": 100, "vendidos": 0 }
+  ]
+}
+
+### CRUD: listar todos
+GET {{baseUrl}}/eventos
+
+### CRUD: filtrar por categoria e cidade
+GET {{baseUrl}}/eventos?categoria=M%C3%BAsica&cidade=S%C3%A3o%20Paulo
+
+### Cache: primeira leitura deve retornar origem banco
+GET {{baseUrl}}/eventos/{{eventoId}}
+
+### Cache: segunda leitura deve retornar origem cache
+GET {{baseUrl}}/eventos/{{eventoId}}
+
+### Atualização: após PUT, a leitura seguinte deve voltar a banco
+PUT {{baseUrl}}/eventos/{{eventoId}}
+Content-Type: application/json
+
+{
+  "nome": "Festival Aurora atualizado",
+  "categoria": "Música",
+  "data": "2027-02-01T00:00:00Z",
+  "local": { "cidade": "São Paulo", "endereço": "Avenida Principal, 100" },
+  "atrações": ["Atração atualizada"],
+  "setores": [
+    { "nome": "Pista", "preço": 120.0, "capacidade": 500, "vendidos": 0 },
+    { "nome": "VIP", "preço": 260.0, "capacidade": 120, "vendidos": 0 }
+  ]
+}
+
+### Cache invalidado pelo PUT: origem deve ser banco
+GET {{baseUrl}}/eventos/{{eventoId}}
+
+### Relatório de faturamento
+GET {{baseUrl}}/relatorios/faturamento
+
+### Relatório de ocupação por setor
+GET {{baseUrl}}/relatorios/ocupacao/{{eventoId}}
+
+### Ranking dos cinco mais consultados
+GET {{baseUrl}}/eventos/ranking
+
+### Reserva: copie o reservaId da resposta para @reservaId
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{
+  "usuarioId": "{{usuarioId}}",
+  "eventoId": "{{eventoId}}",
+  "setor": "Pista",
+  "quantidade": 1
+}
+
+### Confirmação: substitua @reservaId pelo ID retornado pela reserva
+POST {{baseUrl}}/pedidos/confirmar
+Content-Type: application/json
+
+{ "reservaId": "{{reservaId}}" }
+
+### 410: use uma reserva que expirou após 600 segundos
+POST {{baseUrl}}/pedidos/confirmar
+Content-Type: application/json
+
+{ "reservaId": "{{reservaExpiradaId}}" }
+
+### Limite: chamada 1 de 11; execute todas em até um minuto para o mesmo usuário
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{
+  "usuarioId": "{{usuarioLimiteId}}",
+  "eventoId": "{{eventoId}}",
+  "setor": "Pista",
+  "quantidade": 1
+}
+
+### Limite: chamada 2 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 3 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 4 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 5 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 6 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 7 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 8 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 9 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 10 de 11
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Limite: chamada 11 de 11; deve responder 429
+POST {{baseUrl}}/reservas
+Content-Type: application/json
+
+{ "usuarioId": "{{usuarioLimiteId}}", "eventoId": "{{eventoId}}", "setor": "Pista", "quantidade": 1 }
+
+### Exclusão: execute por último para apagar o evento usado na demonstração
+DELETE {{baseUrl}}/eventos/{{eventoId}}
+
+### Depois da exclusão, a leitura deve retornar 404 (cache invalidado)
+GET {{baseUrl}}/eventos/{{eventoId}}
