@@ -20,6 +20,16 @@ O MongoDB guarda os eventos, usuários e pedidos. `local`, `atrações` e `setor
 | `usuarios` | `nome`, `email`, `cidade`, `dataCadastro` |
 | `pedidos` | `usuarioId`, `eventoId`, `setor`, `quantidade`, `valorTotal`, `status`, `criadoEm` |
 
+### Arquitetura em Camadas (Layered Architecture)
+
+A aplicação foi estruturada seguindo o padrão **Controller-Service-Repository** para garantir separação de responsabilidades, alta coesão e baixo acoplamento:
+
+- **`app/schemas/`:** Contratos de dados e validações com Pydantic (`EventModel`, `SectorModel`, `ReservationModel`, etc.).
+- **`app/repositories/`:** Camada de persistência isolando chamadas ao MongoDB (`EventRepository`, `OrderRepository`, `UserRepository`) e ao Redis (`RedisRepository`).
+- **`app/services/`:** Camada de regras de negócio orquestrando validação de saldo de ingressos, cache-aside, locks concorrentes e pub/sub (`EventService`, `ReservationService`, `OrderService`, `ReportService`).
+- **`app/routers/`:** Camada de transporte HTTP/REST expondo os endpoints FastAPI com injeção de dependências (`Depends`).
+- **`app/database.py` e `app/config.py`:** Ciclo de vida das conexões e centralização de variáveis de ambiente.
+
 No início da API são criados os índices `usuarios.email` (único), `eventos.categoria + eventos.data` (composto) e `pedidos.usuarioId`.
 
 ### `explain()` do índice composto
@@ -87,6 +97,14 @@ docker compose exec api python seed.py
 ```
 
 Abra `http://localhost:8000/docs` para a documentação interativa do FastAPI. Para parar os serviços, use `Ctrl+C` no terminal do Compose.
+
+### Testes Automatizados de Ponta a Ponta
+
+Para rodar a suite de testes automatizados que valida todos os 10 requisitos da avaliação e o bônus:
+
+```bash
+python test_api.py
+```
 
 O seed inclui 10 eventos, 20 usuários e 50 pedidos sintéticos. Os IDs determinísticos dos registros de demonstração são:
 
